@@ -44,4 +44,21 @@ C'est une condition d'arrêt qui repose sur la stabilisation des centres, c'est-
 Ici nous choississons l'algorithme qui réalisera le clustering. Par défaut, l'algorithme choisi est celui de Lloyd.
 
 ### Hyperparamètres testés
+Nous avons choisi de faire varier 3 paramètres : 
+
+- **k** : \n 
+![image]()
+
+- **init** : \n
+![image]()
+
+- **max_iter** : |n 
+![image]()
+
+
+## Agglomératif : Cluserting Ascendant 
+
+### Principe
+Initialement, chaque point est un cluster. Ensuite on essaie de les regrouper selon leur ressemblace, avec des calcul de similarité. On effectue des fuciosn jusqu'à n'avoir plus qu'un seul cluster. 
+Cette méthode se différencie des clusterings descendants qui prennent initialement un seul culster et cherchent à avoir autant de clusters que de points. 
 
