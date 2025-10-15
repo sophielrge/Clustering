@@ -5,7 +5,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 
 
-dataset = "diamond9" 
+dataset = "cluto-t4-8k"
 
 
 def lire_fichier_arff(chemin_fichier):
@@ -158,7 +158,7 @@ def comparer_init(points, n_clusters=3, max_iter=300, n_init=1):
     
     df = pd.DataFrame(resultats)
     print("\nComparaison des méthodes d'initialisation")
-    print(df.to_string(f"src/assets/kmean/comparaison_init_{dataset}.csv", index=False))
+    print(df.to_markdown(f"src/assets/kmean/comparaison_init_{dataset}.md", index=False))
     return df
 
 def visualiser_clusters_finaux(points, config_optimale):
@@ -219,32 +219,37 @@ def tester_hyperparametres_complet(chemin_fichier):
     meilleur_k = tester_hyperparametre(
         points, 
         'n_clusters', 
-        [3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+        [2,3,4,5,6,7,8,9],
         config
     )
     config['n_clusters'] = meilleur_k
     
     # 2. Test init
-    comparer_init(points, n_clusters=meilleur_k, max_iter=300, n_init=10)
+    comparer_init(points, n_clusters=meilleur_k, max_iter=300, n_init=1)
     
     # 3. Test max_iter
     meilleur_max_iter = tester_hyperparametre(
         points,
         'max_iter',
-        [2, 5, 10, 20, 30, 40, 50, 100],
+        [1, 2, 5, 10, 20, 30, 40, 50, 100],
         config
     )
     config['max_iter'] = meilleur_max_iter
     
     # Résumé final et visualisation
-    print("\n" + "=" * 50)
-    print("CONFIGURATION OPTIMALE")
-    print("=" * 50)
+    resume_md = []
+
+    resume_md.append(" _CONFIGURATION OPTIMALE_\n")
+
     for param, valeur in config.items():
-        print(f"{param}: {valeur}")
+        ligne = f"- _{param}_ : {valeur}"
+        print(ligne)
+        resume_md.append(ligne)
+
+    with open(f"src/assets/kmean/config_optimale_{dataset}.md", "w") as f:
+        f.write("\n".join(resume_md))
     
     # Visualisation finale des clusters
-    print("\nVISUALISATION DES CLUSTERS FINAUX")
     visualiser_clusters_finaux(points, config)
 
 # Test dans le main
