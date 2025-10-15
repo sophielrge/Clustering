@@ -1,8 +1,6 @@
-### Elian BOAGLIO
-
-### Sophie LARGE
-
-### 5 SDBD B1
+Elian BOAGLIO
+Sophie LARGE
+_5 SDBD B1_
 
 # Clustering
 
@@ -14,51 +12,51 @@ La méthode k-means est une méthode de partionnement qui a pour objectif de min
 Cette méthode permet de partager un ensemble de points en un nombre donnée de clusters (k). Chaque cluster sera par la suite représenter par un unique point. Cette méthode s'appuie sur l'algothime de Lloyd. \n
 
 Il existe plusieurs déclinaisons de cette méthode :
+
 - **k-means random** : Ses centres ne sont pas forcément des points appartenant au jeu de données.
 - **k-means++** : On initialise de manière plus intelligente, c'est-à-dire que les centres initiaux sont choisis ded façon optimale.
 - **mini-batch** : Cette méthode est destinée aux jeux de données avec un grand nombre de points. Elle séquence les points en plus petits lots pour ensuite calculer les centres de manière plus optimale.
-- **k-medoids** : Elle repose sur l'algorithme "Permutation Around Medoids". Son objectif est de minimiser la somme des erreurs absolues aux k medoïds. Les centres finaux des clusters correspondent à des points du jeu de données. 
+- **k-medoids** : Elle repose sur l'algorithme "Permutation Around Medoids". Son objectif est de minimiser la somme des erreurs absolues aux k medoïds. Les centres finaux des clusters correspondent à des points du jeu de données.
 
 ### Étape de la méthode
-1. **Initialisation** : Positionne les centres initiaux des k clusters, soit avec la méthode "k-means++" soit avec celle "random".
-2. **Création de groupes** : Pour chaque point du jeu de données, l'algorithme l'affecte à un des clusters créés précédemment. 
-3. **Mise à jour** : On recalcule les centres de chaque cluster.
-4. **Attente qu'une condition d'arrêt soit complétée** :  
 
+1. **Initialisation** : Positionne les centres initiaux des k clusters, soit avec la méthode "k-means++" soit avec celle "random".
+2. **Création de groupes** : Pour chaque point du jeu de données, l'algorithme l'affecte à un des clusters créés précédemment.
+3. **Mise à jour** : On recalcule les centres de chaque cluster.
+4. **Attente qu'une condition d'arrêt soit complétée** :
 
 ### Hyperparamètres
+
 - **n_clusters ou k** : \n
-C'est le nombre de cluster que l'on veut.
+  C'est le nombre de cluster que l'on veut.
 - **init** : \n
-Ce paramètre permet de choisir la méthode d'initalisation des centroïdes. \n
-Ses valeurs possibles sont :
-    - _random_ : choisit aléatoirement les centres initiaux. Cette méthode est plus rapide mais moins fiable.
-    - _k-means++ (par défaut)_ : calcule en amont les écarts entre chaque centre inital pour les placer de manière optimale.
-- **n_init** : \n 
-Cela correspond au nombre de graines aléatoires pour l'initialisation.
+  Ce paramètre permet de choisir la méthode d'initalisation des centroïdes. \n
+  Ses valeurs possibles sont : - _random_ : choisit aléatoirement les centres initiaux. Cette méthode est plus rapide mais moins fiable. - _k-means++ (par défaut)_ : calcule en amont les écarts entre chaque centre inital pour les placer de manière optimale.
+- **n_init** : \n
+  Cela correspond au nombre de graines aléatoires pour l'initialisation.
 - **max_iter** : \n
-Avec ce paramètre, nous pouvons limiter le nombre d'itérations de notre recherche. Il permet d'éviter les boucles infinis. 
+  Avec ce paramètre, nous pouvons limiter le nombre d'itérations de notre recherche. Il permet d'éviter les boucles infinis.
 - **tol** : \n
-C'est une condition d'arrêt qui repose sur la stabilisation des centres, c'est-à-dire que l'algorithme s'arrête lorsque les centres ne bougent presque plus. 
-- **algorithm** :  \n 
-Ici nous choississons l'algorithme qui réalisera le clustering. Par défaut, l'algorithme choisi est celui de Lloyd.
+  C'est une condition d'arrêt qui repose sur la stabilisation des centres, c'est-à-dire que l'algorithme s'arrête lorsque les centres ne bougent presque plus.
+- **algorithm** : \n
+  Ici nous choississons l'algorithme qui réalisera le clustering. Par défaut, l'algorithme choisi est celui de Lloyd.
 
 ### Hyperparamètres testés
-Nous avons choisi de faire varier 3 paramètres : 
 
-- **k** : \n 
-![image]()
+Nous avons choisi de faire varier 3 paramètres : **k**, **init** et **max_iter**. \n
+Pour cela nous avons étudié 3 datasets différents : spherical_6_2, R15 et diamond9.
+Ces 3 jeux de points ont des caractéristiques similaires. En effet, ils ont très peu de bruits et les clusters sont symétriques et distincts.
 
-- **init** : \n
-![image]()
+#### Spherical_6_2
 
-- **max_iter** : |n 
-![image]()
+![image](src/assets/kmean/test_n_clusters_spherical_6_2.png)
+![image](src/assets/kmean/comparaison_init.csv)
+![image](src/assets/kmean/test_max_iter_spherical_6_2.png)
+![image](src/assets/kmean/clusters_finaux_spherical_6_2.png)
 
-
-## Agglomératif : Cluserting Ascendant 
+## Agglomératif : Cluserting Ascendant
 
 ### Principe
-Initialement, chaque point est un cluster. Ensuite on essaie de les regrouper selon leur ressemblace, avec des calcul de similarité. On effectue des fuciosn jusqu'à n'avoir plus qu'un seul cluster. 
-Cette méthode se différencie des clusterings descendants qui prennent initialement un seul culster et cherchent à avoir autant de clusters que de points. 
 
+Initialement, chaque point est un cluster. Ensuite on essaie de les regrouper selon leur ressemblace, avec des calcul de similarité. On effectue des fuciosn jusqu'à n'avoir plus qu'un seul cluster.
+Cette méthode se différencie des clusterings descendants qui prennent initialement un seul culster et cherchent à avoir autant de clusters que de points.

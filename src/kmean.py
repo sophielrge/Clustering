@@ -1,7 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+
+
+dataset = "diamond9" 
+
 
 def lire_fichier_arff(chemin_fichier):
     """Lit un fichier ARFF et retourne les points"""
@@ -33,9 +38,9 @@ def tester_hyperparametre(points, parametre, valeurs, config_base=None):
     Teste un hyperparamètre avec différentes valeurs et génère des graphiques
     """
     if config_base is None:
-        config_base = {'n_clusters': 3, 'init': 'k-means++', 'max_iter': 300, 'n_init': 1}
+        config_base = {'n_clusters': 3, 'init': 'k-means++', 'max_iter': 300, 'n_init': 1, 'random_state': None}
     
-    print(f"\n🧪 TEST {parametre}")
+    print(f"\nTEST {parametre}")
     print("=" * 50)
     
     # Stocker les résultats pour les graphiques
@@ -43,6 +48,7 @@ def tester_hyperparametre(points, parametre, valeurs, config_base=None):
     calinskis = []
     davies = []
     iterations = []
+    scores_combinés = []
     
     meilleur_score = -1
     meilleure_valeur = valeurs[0]
@@ -65,11 +71,12 @@ def tester_hyperparametre(points, parametre, valeurs, config_base=None):
         silhouettes.append(silhouette)
         calinskis.append(calinski)
         davies.append(davies_score)
-        iterations.append(kmeans.n_iter_ if parametre == 'max_iter' else None)
+        iterations.append(kmeans.n_iter_)
         
         # Score combiné
         score_combiné = (0.6 * silhouette) + (0.3 * (calinski / 1000)) + (0.1 * (1 / davies_score))
-        
+        scores_combinés.append(score_combiné)
+
         if score_combiné > meilleur_score:
             meilleur_score = score_combiné
             meilleure_valeur = valeur
@@ -107,31 +114,52 @@ def tester_hyperparametre(points, parametre, valeurs, config_base=None):
     
     # Graphique 4: Score combiné ou nombre d'itérations
     if parametre == 'max_iter':
-        axes[1, 1].plot(valeurs, iterations, 'mo-', linewidth=2, markersize=8)
+        axes[1, 1].plot(valeurs, iterations, 'mo-', linewidth=2, markersize=8, label='Itérations réelles')
         axes[1, 1].set_xlabel('max_iter')
         axes[1, 1].set_ylabel('Itérations réelles')
         axes[1, 1].set_title('Itérations réelles vs max_iter')
     else:
-        # Calcul du score combiné pour chaque valeur
-        scores_combines = []
-        for i in range(len(valeurs)):
-            score = (0.6 * silhouettes[i]) + (0.3 * (calinskis[i] / 1000)) + (0.1 * (1 / davies[i]))
-            scores_combines.append(score)
-        
-        axes[1, 1].plot(valeurs, scores_combines, 'co-', linewidth=2, markersize=8)
+        axes[1, 1].plot(valeurs, scores_combinés, 'co-', linewidth=2, markersize=8, label='Score combiné')
         axes[1, 1].set_xlabel(parametre)
-        axes[1, 1].set_ylabel('Score Combiné')
-        axes[1, 1].set_title('Score Combiné vs ' + parametre)
+        axes[1, 1].set_ylabel('Score combiné')
+        axes[1, 1].set_title('Score combiné vs ' + parametre)
     
     axes[1, 1].grid(True, alpha=0.3)
     axes[1, 1].axvline(meilleure_valeur, color='red', linestyle='--', alpha=0.7, label=f'Meilleur: {meilleure_valeur}')
     axes[1, 1].legend()
     
     plt.tight_layout()
-    plt.show()
+    plt.savefig(f'src/assets/kmean/test_{parametre}_{dataset}.png')
+    plt.close()
     
-    print(f"🎯 MEILLEUR {parametre}: {meilleure_valeur}")
+    print(f"MEILLEUR {parametre}: {meilleure_valeur}")
     return meilleure_valeur
+
+def comparer_init(points, n_clusters=3, max_iter=300, n_init=1):
+    inits = ['k-means++', 'random']
+    resultats = []
+
+    for init_method in inits:
+        kmeans = KMeans(n_clusters=n_clusters, init=init_method, max_iter=max_iter, n_init=n_init)
+        labels = kmeans.fit_predict(points)
+        
+        silhouette = silhouette_score(points, labels)
+        calinski = calinski_harabasz_score(points, labels)
+        davies = davies_bouldin_score(points, labels)
+        score_combine = (0.6 * silhouette) + (0.3 * (calinski / 1000)) + (0.1 * (1 / davies))
+        
+        resultats.append({
+            'Init': init_method,
+            'Silhouette': round(silhouette, 3),
+            'Calinski-Harabasz': round(calinski, 3),
+            'Davies-Bouldin': round(davies, 3),
+            'Score combiné': round(score_combine, 3)
+        })
+    
+    df = pd.DataFrame(resultats)
+    print("\nComparaison des méthodes d'initialisation")
+    print(df.to_string(f"src/assets/kmean/comparaison_init_{dataset}.csv", index=False))
+    return df
 
 def visualiser_clusters_finaux(points, config_optimale):
     """Visualise les clusters finaux avec la configuration optimale"""
@@ -151,77 +179,74 @@ def visualiser_clusters_finaux(points, config_optimale):
     plt.ylabel('Y')
     plt.grid(True, alpha=0.3)
     
-    # Graphique des métriques
-    plt.subplot(1, 2, 2)
-    metriques = ['Silhouette', 'Calinski', 'Davies']
-    scores = [
-        silhouette_score(points, labels),
-        calinski_harabasz_score(points, labels),
-        davies_bouldin_score(points, labels)
-    ]
+     # Graphique des métriques
+    # plt.subplot(1, 2, 2)
+    # metriques = ['Silhouette', 'Calinski', 'Davies']
+    # scores = [
+    #     silhouette_score(points, labels),
+    #     calinski_harabasz_score(points, labels),
+    #     davies_bouldin_score(points, labels)
+    # ]
     
-    bars = plt.bar(metriques, scores, color=['blue', 'green', 'red'], alpha=0.7)
-    plt.title('Scores finaux')
-    plt.ylabel('Score')
+    #  bars = plt.bar(metriques, scores, color=['blue', 'green', 'red'], alpha=0.7)
+    # plt.title('Scores finaux')
+    # plt.ylabel('Score')
+   
+
+    # # Ajouter les valeurs sur les barres
+    # for bar, score in zip(bars, scores):
+    #     plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01, 
+    #             f'{score:.3f}', ha='center', va='bottom')
     
-    # Ajouter les valeurs sur les barres
-    for bar, score in zip(bars, scores):
-        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01, 
-                f'{score:.3f}', ha='center', va='bottom')
-    
-    plt.grid(True, alpha=0.3, axis='y')
+    # plt.grid(True, alpha=0.3, axis='y')
+
     plt.tight_layout()
-    plt.show()
+    plt.savefig(f'src/assets/kmean/clusters_finaux_{dataset}.png')
+    plt.close()
 
 def tester_hyperparametres_complet(chemin_fichier):
     """Test complet avec visualisations graphiques"""
     
     # Charger les points
     points = lire_fichier_arff(chemin_fichier)
-    print(f"✅ {len(points)} points chargés")
-    print("📊 n_init=1 pour voir les vraies différences entre les méthodes")
+    print(f"{len(points)} points chargés")
+    print("n_init=1 pour voir les vraies différences entre les méthodes")
     
     # Configuration de base avec n_init=1
-    config = {'n_init': 1, 'random_state': None}
+    config = {'n_init': 10, 'random_state': 42}
     
     # 1. Test n_clusters
     meilleur_k = tester_hyperparametre(
         points, 
         'n_clusters', 
-        [2, 3, 4, 5, 6],
+        [3,4,5,6,7,8,9,10,11,12,13,14,15,16],
         config
     )
     config['n_clusters'] = meilleur_k
     
     # 2. Test init
-    meilleure_init = tester_hyperparametre(
-        points,
-        'init',
-        ['k-means++', 'random'],
-        config
-    )
-    config['init'] = meilleure_init
+    comparer_init(points, n_clusters=meilleur_k, max_iter=300, n_init=10)
     
     # 3. Test max_iter
     meilleur_max_iter = tester_hyperparametre(
         points,
         'max_iter',
-        [10, 50, 100, 200, 300, 400, 500],
+        [2, 5, 10, 20, 30, 40, 50, 100],
         config
     )
     config['max_iter'] = meilleur_max_iter
     
     # Résumé final et visualisation
     print("\n" + "=" * 50)
-    print("🎯 CONFIGURATION OPTIMALE")
+    print("CONFIGURATION OPTIMALE")
     print("=" * 50)
     for param, valeur in config.items():
         print(f"{param}: {valeur}")
     
     # Visualisation finale des clusters
-    print("\n📈 VISUALISATION DES CLUSTERS FINAUX")
+    print("\nVISUALISATION DES CLUSTERS FINAUX")
     visualiser_clusters_finaux(points, config)
 
 # Test dans le main
 if __name__ == "__main__":
-    tester_hyperparametres_complet("/home/boaglio/5A/clustering/Clustering/src/dataset/artificial/2d-20c-no0.arff")
+    tester_hyperparametres_complet(f"src/dataset/artificial/{dataset}.arff")
