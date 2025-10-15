@@ -51,6 +51,8 @@ Ces 3 jeux de points ont des caractéristiques similaires. En effet, ils ont tr�
 
 #### Spherical_6_2
 
+**Observation** : Le meilleur k est 6, ce qui correspond au nombre réel de clusters.
+
 _CONFIGURATION OPTIMALE_
 
 - _n_init_ : 10
@@ -68,6 +70,8 @@ _CONFIGURATION OPTIMALE_
 ![image](src/assets/kmean/clusters_finaux_spherical_6_2.png)
 
 #### R15
+
+**Observation** : k optimal = 15, ce qui correspond au nombre réel de clusters.
 
 _CONFIGURATION OPTIMALE_
 
@@ -87,6 +91,8 @@ _CONFIGURATION OPTIMALE_
 
 #### Diamond9
 
+**Observation** : k optimal = 9, ce qui correspond au nombre réel de clusters.
+
 _CONFIGURATION OPTIMALE_
 
 - _n_init_ : 10
@@ -103,7 +109,27 @@ _CONFIGURATION OPTIMALE_
 ![image](src/assets/kmean/test_max_iter_diamond9.png)
 ![image](src/assets/kmean/clusters_finaux_diamond9.png)
 
-### Faiblesse
+#### Interprétation
+
+##### n_clusters (k)
+
+- Plus le nombre de clusters choisi est proche du nombre réel de clusters, meilleurs sont les scores de **Silhouette** et **Calinski-Harabasz**, et plus le score **Davies-Bouldin** est bas.
+- Sur le dataset _spherical_6_2_, les scores combinés augmentent fortement lorsque k passe de 2 à 6, puis diminuent après. Cela montre que **6** est le nombre de clusters optimal pour ce jeu de données.
+- Pour les autres datasets, la même tendance est visible : les performances maximales sont atteintes pour k proche du nombre réel de clusters (respectivement 15 et 9).
+- Si k est trop faible, plusieurs clusters réels sont fusionnés, diminuant la qualité. Si k est trop grand, des clusters artificiels sont créés, augmentant l’incohérence.
+
+##### init
+
+- La méthode **_k-means++_** surpasse systématiquement l’initialisation **_random_**, surtout pour des datasets simples et symétriques.
+- Cela s’explique car _k-means++_ choisit des centres initiaux bien espacés, qui évite des minima locaux et accélére la convergence.
+
+##### max_iter
+
+- Le paramètre **max_iter** influence le nombre réel d’itérations nécessaires pour que les centres convergent.
+- Pour les datasets simples, seulement quelques itérations suffisent pour atteindre la stabilité des centres.
+- Pour les datasets plus complexes ou bruités, un nombre plus élevé d’itérations est nécessaire pour que les centres se stabilisent.
+
+### Faiblesse de K-means
 
 Nous avons fait des tests avec des jeux de points aux caractéristes éloignés des 3 premires. En effet, les jeux _dpb_ et _cluto-t4-8k_ ont pas du bruit, ce qui rend les clusters moins repérables. De plus, les clusters ne sont plus en forme de bulle, ce qui mets à mal notre algorithme.
 
@@ -145,7 +171,17 @@ _CONFIGURATION OPTIMALE_
 ![image](src/assets/kmean/test_max_iter_cluto-t4-8k.png)
 ![image](src/assets/kmean/clusters_finaux_cluto-t4-8k.png)
 
-En réalité, nosu aurions du trouvé 6 clusters.
+#### Observations
+
+| Dataset     | k optimal trouvé | k réel | Commentaire                                                           |
+| :---------- | ---------------- | ------ | --------------------------------------------------------------------- |
+| dpb         | 8                | 5      | Les clusters sont moins distincts, K-means tend à sursegmenter.       |
+| cluto-t4-8k | 2                | 6      | Les clusters sont irréguliers et très étendus, K-means sous-segmente. |
+
+#### Conclusion
+
+K-means fonctionne très bien sur des données propres et symétriques, mais sa sensibilité au bruit et à la forme des clusters limite son efficacité pour les jeux de points plus réalistes.
+Nous avons remarqué que cette méthode fait généralement des clusters de même taille. Les datasets avec des clusers de taille inégale ne seront pas bien analysé par k-means.
 
 ## Agglomératif : Cluserting Ascendant
 
