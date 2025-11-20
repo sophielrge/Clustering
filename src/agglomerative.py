@@ -1,141 +1,147 @@
+import os
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+from sklearn.metrics import (
+    silhouette_score,
+    calinski_harabasz_score,
+    davies_bouldin_score
+)
+from scipy.cluster.hierarchy import dendrogram, linkage as scipy_linkage
 
+dataset = "banana"
+
+# ---- Création dossier de sortie ----
+output_dir = f"src/assets/agglomerative/{dataset}"
+os.makedirs(output_dir, exist_ok=True)
+
+# ---- Lire fichier ARFF ----
 def lire_fichier_arff(chemin_fichier):
-    """Lit un fichier ARFF et retourne les points"""
     points = []
-    
-    with open(chemin_fichier, 'r') as fichier:
-        lire_donnees = False
-        
-        for ligne in fichier:
-            ligne = ligne.strip()
-            
-            if not ligne or ligne.startswith('%'):
+    with open(chemin_fichier, 'r') as f:
+        data_started = False
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('%'):
                 continue
-            
-            if ligne.upper() == '@DATA':
-                lire_donnees = True
+            if line.upper() == '@DATA':
+                data_started = True
                 continue
-            
-            if lire_donnees:
-                valeurs = ligne.split(',')
-                x = float(valeurs[0])
-                y = float(valeurs[1])
-                points.append([x, y])
-    
+            if data_started:
+                valeurs = line.split(',')
+                points.append([float(valeurs[0]), float(valeurs[1])])
     return np.array(points)
 
-def tester_hyperparametre(points, parametre, valeurs, config_base=None):
-    """
-    Teste un hyperparamètre du clustering hiérarchique avec différentes valeurs
-    """
-    if config_base is None:
-        config_base = {'n_clusters': 3, 'linkage': 'ward'}
-    
-    print(f"\n🧪 TEST {parametre}")
-    print("=" * 50)
-    
-    # En-tête du tableau
-    if parametre == 'n_clusters':
-        print("K   | Silhouette | Calinski | Davies")
-    elif parametre == 'linkage':
-        print("Linkage  | Silhouette | Calinski | Davies")
-    elif parametre == 'affinity':
-        print("Affinity | Silhouette | Calinski | Davies")
-    else:
-        print(f"{parametre:8} | Silhouette | Calinski | Davies")
-    
-    print("-" * 50)
-    
-    meilleur_score = -1
-    meilleure_valeur = valeurs[0]
-    
-    for valeur in valeurs:
-        # Créer la configuration avec la valeur testée
-        config = config_base.copy()
-        config[parametre] = valeur
-        
-        # Appliquer le clustering hiérarchique
-        clustering = AgglomerativeClustering(**config)
-        labels = clustering.fit_predict(points)
-        
-        # Calculer les métriques
-        silhouette = silhouette_score(points, labels)
-        calinski = calinski_harabasz_score(points, labels)
-        davies = davies_bouldin_score(points, labels)
-        
-        # Afficher les résultats
-        if parametre == 'n_clusters':
-            print(f"{valeur:2} | {silhouette:9.3f} | {calinski:7.1f} | {davies:6.3f}")
-        elif parametre == 'linkage':
-            print(f"{valeur:8} | {silhouette:9.3f} | {calinski:7.1f} | {davies:6.3f}")
-        elif parametre == 'affinity':
-            print(f"{valeur:8} | {silhouette:9.3f} | {calinski:7.1f} | {davies:6.3f}")
-        else:
-            print(f"{valeur:8} | {silhouette:9.3f} | {calinski:7.1f} | {davies:6.3f}")
-        
-        # Score combiné
-        score_combiné = (0.6 * silhouette) + (0.3 * (calinski / 1000)) + (0.1 * (1 / davies))
-        
-        if score_combiné > meilleur_score:
-            meilleur_score = score_combiné
-            meilleure_valeur = valeur
-    
-    print(f"🎯 MEILLEUR {parametre}: {meilleure_valeur}")
-    return meilleure_valeur
+# ---- Tester différents n_clusters ----
+def tester_n_clusters(points, linkage='ward', max_clusters=10):
+    silhouettes = []
+    calinskis = []
+    davies = []
+    cluster_range = range(2, max_clusters+1)
 
-def tester_clustering_hierarchique_complet(chemin_fichier):
-    """Test complet des hyperparamètres du clustering hiérarchique"""
-    
-    # Charger les points
+    for k in cluster_range:
+        model = AgglomerativeClustering(n_clusters=k, linkage=linkage)
+        labels = model.fit_predict(points)
+
+        silhouettes.append(silhouette_score(points, labels))
+        calinskis.append(calinski_harabasz_score(points, labels))
+        davies.append(davies_bouldin_score(points, labels))
+
+    # Graphiques des scores
+    plt.figure(figsize=(12,8))
+
+    plt.subplot(2,2,1)
+    plt.plot(cluster_range, silhouettes, 'bo-')
+    plt.xlabel("n_clusters"); plt.ylabel("Score"); plt.title(f"Silhouette ({linkage})")
+    plt.grid(alpha=0.3)
+
+    plt.subplot(2,2,2)
+    plt.plot(cluster_range, calinskis, 'go-')
+    plt.xlabel("n_clusters"); plt.ylabel("Score"); plt.title(f"Calinski-Harabasz ({linkage})")
+    plt.grid(alpha=0.3)
+
+    plt.subplot(2,2,3)
+    plt.plot(cluster_range, davies, 'ro-')
+    plt.xlabel("n_clusters"); plt.ylabel("Score"); plt.title(f"Davies-Bouldin ({linkage}) (bas = mieux)")
+    plt.grid(alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/scores_n_clusters_{linkage}.png")
+    plt.close()
+
+    meilleur_k = cluster_range[np.argmax(silhouettes)]
+    print(f"[{linkage}] Meilleur n_clusters (Silhouette) : {meilleur_k}")
+    return meilleur_k
+
+# ---- Dendrogramme ----
+def afficher_dendrogramme(points, method='ward'):
+    linked = scipy_linkage(points, method=method)
+    plt.figure(figsize=(10,5))
+    dendrogram(linked, truncate_mode='level', p=30)
+    plt.title(f"Dendrogramme ({method})")
+    plt.xlabel("Points")
+    plt.ylabel("Distance")
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/dendrogram_{method}.png")
+    plt.close()
+
+# ---- Visualisation clusters ----
+def visualiser_clusters(points, n_clusters, linkage):
+    model = AgglomerativeClustering(n_clusters=n_clusters, linkage=linkage)
+    labels = model.fit_predict(points)
+
+    plt.figure(figsize=(7,5))
+    plt.scatter(points[:,0], points[:,1], c=labels, cmap='viridis', alpha=0.7)
+    plt.title(f"Agglomerative Clustering ({linkage}, k={n_clusters})")
+    plt.xlabel("X"); plt.ylabel("Y")
+    plt.grid(alpha=0.3)
+    plt.colorbar()
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/clusters_{linkage}_k{n_clusters}.png")
+    plt.close()
+
+# ---- Programme principal ----
+def main():
+    chemin_fichier = f"src/dataset/artificial/{dataset}.arff"
     points = lire_fichier_arff(chemin_fichier)
-    print(f"✅ {len(points)} points chargés")
-    print("📊 Clustering Hiérarchique Agglomerative")
-    
-    # Configuration de base
-    config = {}
-    
-    # 1. Test n_clusters
-    meilleur_k = tester_hyperparametre(
-        points, 
-        'n_clusters', 
-        [2, 3, 4, 5, 6],
-        config
-    )
-    config['n_clusters'] = meilleur_k
-    
-    # 2. Test linkage (méthode de liaison)
-    meilleur_linkage = tester_hyperparametre(
-        points,
-        'linkage',
-        ['ward', 'complete', 'average', 'single'],
-        config
-    )
-    config['linkage'] = meilleur_linkage
-    
-    # 3. Test affinity (mesure de distance)
-    # Pour 'ward', on ne peut utiliser que 'euclidean'
-    if meilleur_linkage != 'ward':
-        meilleure_affinity = tester_hyperparametre(
-            points,
-            'affinity',
-            ['euclidean', 'manhattan', 'cosine'],
-            config
-        )
-        config['affinity'] = meilleure_affinity
-    else:
-        config['affinity'] = 'euclidean'
-        print(f"\nℹ️  Avec linkage='ward', affinity est forcé à 'euclidean'")
-    
-    # Résumé final
-    print("\n" + "=" * 50)
-    print("🎯 CONFIGURATION OPTIMALE - Clustering Hiérarchique")
-    print("=" * 50)
-    for param, valeur in config.items():
-        print(f"{param}: {valeur}")
+    print(f"{len(points)} points chargés dans {dataset}")
 
-# Test dans le main
+    linkages = ['ward', 'single', 'complete', 'average']
+    best_k_for_linkage = {}
+    silhouette_scores = []
+
+    # ---- Traiter CHAQUE linkage ----
+    for link in linkages:
+        print("\n==============================")
+        print(f"   TEST LINKAGE = {link}")
+        print("==============================")
+
+        # 1) choix du meilleur k
+        k_best = tester_n_clusters(points, linkage=link, max_clusters=10)
+        best_k_for_linkage[link] = k_best
+
+        # 2) dendrogramme pour ce linkage
+        afficher_dendrogramme(points, method=link)
+
+        # 3) clusters obtenus pour ce linkage
+        visualiser_clusters(points, n_clusters=k_best, linkage=link)
+
+        # 4) score silhouette du résultat final pour comparaison
+        model = AgglomerativeClustering(n_clusters=k_best, linkage=link)
+        labels = model.fit_predict(points)
+        silhouette_scores.append(silhouette_score(points, labels))
+
+    # ---- Choix final du meilleur linkage ----
+    best_linkage = linkages[np.argmax(silhouette_scores)]
+    best_k = best_k_for_linkage[best_linkage]
+
+    print("\n====================================")
+    print(f"Meilleur linkage global : {best_linkage}")
+    print(f"Meilleur k : {best_k}")
+    print("====================================")
+
+    # ---- Visualisation finale ----
+    visualiser_clusters(points, n_clusters=best_k, linkage=best_linkage)
+
 if __name__ == "__main__":
-    tester_clustering_hierarchique_complet("/home/boaglio/5A/clustering/Clustering/src/dataset/artificial/2d-10c.arff")
+    main()

@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -5,11 +7,13 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 
 
-dataset = "cluto-t4-8k"
+dataset = "square4"
 
+# ---- Création du dossier de sortie ----
+output_dir = f"src/assets/kmean/{dataset}"
+os.makedirs(output_dir, exist_ok=True)
 
 def lire_fichier_arff(chemin_fichier):
-    """Lit un fichier ARFF et retourne les points"""
     points = []
     
     with open(chemin_fichier, 'r') as fichier:
@@ -34,9 +38,6 @@ def lire_fichier_arff(chemin_fichier):
     return np.array(points)
 
 def tester_hyperparametre(points, parametre, valeurs, config_base=None):
-    """
-    Teste un hyperparamètre avec différentes valeurs et génère des graphiques
-    """
     if config_base is None:
         config_base = {'n_clusters': 3, 'init': 'k-means++', 'max_iter': 300, 'n_init': 1, 'random_state': None}
     
@@ -54,34 +55,29 @@ def tester_hyperparametre(points, parametre, valeurs, config_base=None):
     meilleure_valeur = valeurs[0]
     
     for valeur in valeurs:
-        # Créer la configuration avec la valeur testée
         config = config_base.copy()
         config[parametre] = valeur
         
         # Appliquer K-means
         kmeans = KMeans(**config)
         labels = kmeans.fit_predict(points)
-        
-        # Calculer les métriques
+
         silhouette = silhouette_score(points, labels)
         calinski = calinski_harabasz_score(points, labels)
         davies_score = davies_bouldin_score(points, labels)
-        
-        # Stocker les résultats
+
         silhouettes.append(silhouette)
         calinskis.append(calinski)
         davies.append(davies_score)
         iterations.append(kmeans.n_iter_)
-        
-        # Score combiné
+
         score_combiné = (0.6 * silhouette) + (0.3 * (calinski / 1000)) + (0.1 * (1 / davies_score))
         scores_combinés.append(score_combiné)
 
         if score_combiné > meilleur_score:
             meilleur_score = score_combiné
             meilleure_valeur = valeur
-    
-    # Créer les graphiques
+
     fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     fig.suptitle(f'Analyse des performances pour {parametre}', fontsize=16, fontweight='bold')
     
@@ -129,7 +125,7 @@ def tester_hyperparametre(points, parametre, valeurs, config_base=None):
     axes[1, 1].legend()
     
     plt.tight_layout()
-    plt.savefig(f'src/assets/kmean/test_{parametre}_{dataset}.png')
+    plt.savefig(f'src/assets/kmean/{dataset}/test_{parametre}_{dataset}.png')
     plt.close()
     
     print(f"MEILLEUR {parametre}: {meilleure_valeur}")
@@ -158,11 +154,10 @@ def comparer_init(points, n_clusters=3, max_iter=300, n_init=1):
     
     df = pd.DataFrame(resultats)
     print("\nComparaison des méthodes d'initialisation")
-    print(df.to_markdown(f"src/assets/kmean/comparaison_init_{dataset}.md", index=False))
+    print(df.to_markdown(f"src/assets/kmean/{dataset}/comparaison_init_{dataset}.md", index=False))
     return df
 
 def visualiser_clusters_finaux(points, config_optimale):
-    """Visualise les clusters finaux avec la configuration optimale"""
     kmeans = KMeans(**config_optimale)
     labels = kmeans.fit_predict(points)
     centres = kmeans.cluster_centers_
@@ -178,44 +173,19 @@ def visualiser_clusters_finaux(points, config_optimale):
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.grid(True, alpha=0.3)
-    
-     # Graphique des métriques
-    # plt.subplot(1, 2, 2)
-    # metriques = ['Silhouette', 'Calinski', 'Davies']
-    # scores = [
-    #     silhouette_score(points, labels),
-    #     calinski_harabasz_score(points, labels),
-    #     davies_bouldin_score(points, labels)
-    # ]
-    
-    #  bars = plt.bar(metriques, scores, color=['blue', 'green', 'red'], alpha=0.7)
-    # plt.title('Scores finaux')
-    # plt.ylabel('Score')
-   
-
-    # # Ajouter les valeurs sur les barres
-    # for bar, score in zip(bars, scores):
-    #     plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01, 
-    #             f'{score:.3f}', ha='center', va='bottom')
-    
-    # plt.grid(True, alpha=0.3, axis='y')
 
     plt.tight_layout()
-    plt.savefig(f'src/assets/kmean/clusters_finaux_{dataset}.png')
+    plt.savefig(f'src/assets/kmean/{dataset}/clusters_finaux_{dataset}.png')
     plt.close()
 
 def tester_hyperparametres_complet(chemin_fichier):
-    """Test complet avec visualisations graphiques"""
-    
-    # Charger les points
     points = lire_fichier_arff(chemin_fichier)
     print(f"{len(points)} points chargés")
     print("n_init=1 pour voir les vraies différences entre les méthodes")
     
     # Configuration de base avec n_init=1
     config = {'n_init': 10, 'random_state': 42}
-    
-    # 1. Test n_clusters
+
     meilleur_k = tester_hyperparametre(
         points, 
         'n_clusters', 
@@ -223,11 +193,9 @@ def tester_hyperparametres_complet(chemin_fichier):
         config
     )
     config['n_clusters'] = meilleur_k
-    
-    # 2. Test init
+
     comparer_init(points, n_clusters=meilleur_k, max_iter=300, n_init=1)
-    
-    # 3. Test max_iter
+
     meilleur_max_iter = tester_hyperparametre(
         points,
         'max_iter',
@@ -235,10 +203,8 @@ def tester_hyperparametres_complet(chemin_fichier):
         config
     )
     config['max_iter'] = meilleur_max_iter
-    
-    # Résumé final et visualisation
-    resume_md = []
 
+    resume_md = []
     resume_md.append(" _CONFIGURATION OPTIMALE_\n")
 
     for param, valeur in config.items():
@@ -246,12 +212,10 @@ def tester_hyperparametres_complet(chemin_fichier):
         print(ligne)
         resume_md.append(ligne)
 
-    with open(f"src/assets/kmean/config_optimale_{dataset}.md", "w") as f:
+    with open(f"src/assets/kmean/{dataset}/config_optimale_{dataset}.md", "w") as f:
         f.write("\n".join(resume_md))
-    
-    # Visualisation finale des clusters
+
     visualiser_clusters_finaux(points, config)
 
-# Test dans le main
 if __name__ == "__main__":
     tester_hyperparametres_complet(f"src/dataset/artificial/{dataset}.arff")

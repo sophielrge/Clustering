@@ -189,3 +189,15 @@ Nous avons remarqué que cette méthode fait généralement des clusters de mêm
 
 Initialement, chaque point est un cluster. Ensuite on essaie de les regrouper selon leur ressemblace, avec des calcul de similarité. On effectue des fuciosn jusqu'à n'avoir plus qu'un seul cluster.  
 Cette méthode se différencie des clusterings descendants qui prennent initialement un seul culster et cherchent à avoir autant de clusters que de points.
+
+Voici ce que ça donne pour les 4 types de linkage :
+
+| Linkage | Comment ça fonctionne | Effet typique sur les clusters |
+|:--------| ---------------- |--------------------------------|
+|  ward	  | Minimise la variance intra-cluster à chaque fusion | 	Préfère des clusters compacts et sphériques. Ne fonctionne qu’avec la distance Euclidienne. |
+| single |	Distance minimale entre points de deux clusters (nearest neighbor)| 	Forme des clusters en chaîne → peut fusionner des points très éloignés via un “pont” de points.| 
+| complete |	Distance maximale entre points de deux clusters (farthest neighbor)	Tends à créer des clusters plus homogènes, moins sensibles aux “chaînes”. |
+| average |	Distance moyenne entre tous les points de deux clusters	| Intermédiaire entre single et complete → clusters moins extrêmes, forme souvent plus naturelle. |
+
+### Condition à respecter
+Pour que ça marche, il fuat qu'on est des clusters de tailles égales. 
